@@ -21,7 +21,7 @@ class ClientHandler {
             this.authService = new AuthServiceImpl();
             new Thread(() -> {
                 try {
-                    autorization();
+                    authorization();
                     read();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -50,7 +50,7 @@ class ClientHandler {
     }
 
     //   /auth login password
-    private void autorization() throws IOException {
+    private void authorization() throws IOException {
         while (true) {
             String str = in.readUTF();
             if (str.startsWith("/auth")) {
