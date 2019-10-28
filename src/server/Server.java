@@ -43,12 +43,11 @@ public class Server {
         }
     }
 
-    void broadcast(String message) {
+    void broadcast(ClientHandler from, String message) {
         for (ClientHandler clientHandler : peers) {
-            clientHandler.sendMsg(message);
+            if (!clientHandler.checkBlackList(from.getNick())) clientHandler.sendMsg(from.getNick() + ": " + message);
 
         }
-
     }
 
     void subscribe(ClientHandler clientHandler) {
@@ -57,5 +56,24 @@ public class Server {
 
     void unSubscribe(ClientHandler clientHandler) {
         peers.remove(clientHandler);
+    }
+
+    void sendPersonalMsg(ClientHandler from, String nickTo, String msg) {
+        for (ClientHandler o : peers) {
+            if (o.getNick().equalsIgnoreCase(nickTo) && !o.checkBlackList(from.getNick())) {
+                o.sendMsg("FROM: " + from.getNick() + " SEND: " + msg);
+                from.sendMsg("TO: " + nickTo + " SEND: " + msg);
+                return;
+            }
+        }
+        from.sendMsg("Nick " + nickTo + " is not found");
+    }
+
+    public boolean isNickBusy(String nick) {
+        for (ClientHandler o : peers) if (o.getNick().equalsIgnoreCase(nick)) return true;
+        return false;
+    }
+
+    public void changeMyNick(ClientHandler from, String newname) {
     }
 }

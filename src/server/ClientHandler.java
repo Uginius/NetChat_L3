@@ -4,6 +4,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 class ClientHandler {
     private Socket socket;
@@ -11,6 +13,8 @@ class ClientHandler {
     private AuthService authService;
     private DataOutputStream out;
     private DataInputStream in;
+    private String nick;
+    private List<String> blackList;
 
     public ClientHandler(Socket socket, Server server) {
         try {
@@ -19,6 +23,7 @@ class ClientHandler {
             this.in = new DataInputStream(socket.getInputStream());
             this.out = new DataOutputStream(socket.getOutputStream());
             this.authService = new AuthServiceImpl();
+            this.blackList = new CopyOnWriteArrayList<>();
             new Thread(() -> {
                 try {
                     authorization();
@@ -38,11 +43,31 @@ class ClientHandler {
         while (true) {
             try {
                 String str = in.readUTF();
-                if (str.equalsIgnoreCase("/end")) {
-                    sendMsg("serverclosed");
-                    break;
+                // Служебные сообщения
+                if (str.startsWith("/")) {
+                    if (str.equalsIgnoreCase("/end")) {
+                        sendMsg("server closed");
+                        break;
+                    }
+                    if (str.startsWith("/to ")) {
+                        String[] tokens = str.split(" ", 3);
+                        server.sendPersonalMsg(this, tokens[1], tokens[2]);
+                    }
+                    if (str.startsWith("/blacklist ")) {
+                        String[] tokens = str.split(" ");
+                        blackList.add(tokens[1]);
+                        sendMsg("You adds " + tokens[1] + " in blackList");
+                    }
+                    if (str.startsWith("/showblacklist ")) {
+                        sendMsg(blackList.toString());
+                    }
+                    if (str.startsWith("/newnick ")) {
+                        String[] tokens = str.split(" ", 3);
+                        server.changeMyNick(this, tokens[1]);
+                    }
+                } else {
+                    server.broadcast(this, str);
                 }
-                server.broadcast(str);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -55,11 +80,14 @@ class ClientHandler {
             String str = in.readUTF();
             if (str.startsWith("/auth")) {
                 String[] tokens = str.split(" ");
-                String nick = authService.getNick(tokens[1], tokens[2]);
-                if (nick != null) {
-                    sendMsg("/authOK");
-                    server.subscribe(this);
-                    break;
+                String authNick = authService.getNick(tokens[1], tokens[2]);
+                if (authNick != null) {
+                    if (!server.isNickBusy(authNick)) {
+                        sendMsg("/authOK");
+                        nick = authNick;
+                        server.subscribe(this);
+                        break;
+                    } else sendMsg("This name is already used");
                 } else {
                     sendMsg("Incorrect login or password.");
                 }
@@ -86,4 +114,11 @@ class ClientHandler {
         }
     }
 
+    String getNick() {
+        return nick;
+    }
+
+    boolean checkBlackList(String nick) {
+        return blackList.contains(nick);
+    }
 }

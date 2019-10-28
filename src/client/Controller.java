@@ -32,6 +32,7 @@ public class Controller {
     final String ADRESS = "localhost";
     final int PORT = 8181;
     private boolean isAuthorized;
+    String username;
 
     private void setAuthorized(boolean isAuthorized) {
         this.isAuthorized = isAuthorized;
@@ -92,16 +93,15 @@ public class Controller {
             if (str.startsWith("/authOK")) {
                 setAuthorized(true);
                 break;
-            } else {
-                chatArea.appendText(str + "\n");
-            }
+            } else chatArea.appendText(str + "\n");
         }
     }
 
     public void tryToAuth(ActionEvent actionEvent) {
         if (socket == null || socket.isClosed()) connect();
         try {
-            out.writeUTF("/auth " + loginField.getText() + " " + passwordField.getText());
+            username = loginField.getText();
+            out.writeUTF("/auth " + username + " " + passwordField.getText());
             loginField.clear();
             passwordField.clear();
         } catch (IOException e) {
@@ -111,7 +111,7 @@ public class Controller {
 
     public void sendMsg(ActionEvent actionEvent) {
         try {
-            out.writeUTF(msgField.getText());
+            out.writeUTF(/*username + ": " +*/ msgField.getText());
             msgField.clear();
             msgField.requestFocus();
         } catch (IOException e) {

@@ -4,9 +4,7 @@ import java.sql.*;
 
 public interface AuthService {
     String getNick(String login, String pass);
-
     void connect();
-
     void disconnect();
 }
 
